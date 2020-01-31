@@ -50,12 +50,12 @@ def split_and_check_crc(sentence):
     return isValid, data
 
 
-def compute_crc(data, crcHexString):
+def compute_crc(data, crc_hex_string):
     # Source: http://code.activestate.com/recipes/576789-nmea-sentence-checksum/
     crc_result = functools.reduce(operator.xor, (ord(s) for s in data), 0)
 
     # convert our hex to dec for comparison
-    crc = int(crcHexString, 16)
+    crc = int(crc_hex_string, 16)
 
     if crc == crc_result:
         return True
@@ -65,9 +65,9 @@ def compute_crc(data, crcHexString):
 
 def decode(sentence):
     print("Time: " + strftime("%H:%M:%S", gmtime()))
-    validCRC, d = split_and_check_crc(sentence)
+    valid_crc, d = split_and_check_crc(sentence)
 
-    if not validCRC:
+    if not valid_crc:
         print("Bad message: CRC Error")
         return
 
@@ -76,7 +76,7 @@ def decode(sentence):
     print(repr(d))
 
     if "GGA" in sentence:
-        gpsTime = d[1]  # fixed time taken
+        gps_time = d[1]  # fixed time taken
         lat = d[2]  # in deg
         lat_dir = d[3]  # North or south
         lon = d[4]  # in deg
@@ -87,14 +87,14 @@ def decode(sentence):
         alt_units = d[10]
         alt_geoid = d[11]  # in AMSL
 
-        print("GGA: Time: {}, Lat: {}deg {}, Lon {}deg {}, Quality: {}, Satellites: {}, Alt: {}{}".format(gpsTime, lat,
+        print("GGA: Time: {}, Lat: {}deg {}, Lon {}deg {}, Quality: {}, Satellites: {}, Alt: {}{}".format(gps_time, lat,
                                                                                                           lat_dir, lon,
                                                                                                           lon_dir,
                                                                                                           quality,
                                                                                                           satellites,
                                                                                                           alt,
                                                                                                           alt_units))
-        return gpsTime, lat, lat_dir, lon, lon_dir, quality, satellites, alt, alt_units
+        return gps_time, lat, lat_dir, lon, lon_dir, quality, satellites, alt, alt_units
 
     # magnetic heading deviation variation
     elif "HDG" in sentence:
@@ -105,26 +105,26 @@ def decode(sentence):
         return heading, variation, variation_dir
 
 
-def run(testData=""):
+def run(test_data=""):
     # setup port
     if HOST == "127.0.0.1":
-        hostname = "Localhost"
+        hostname = "localhost"
 
     try:
         s = init(host=HOST, port=PORT)
         print("Connected to {}.".format(hostname))
     except ConnectionRefusedError:
-        if not testData:
+        if not test_data:
             hostname = HOST
             print("No connection could be made to {}.".format(hostname))
             exit()
 
-    if not testData:
+    if not test_data:
         while True:
             sentence = receive_one_sentence(s)
             decode(sentence)
     else:
-        sentence = testData
+        sentence = test_data
         decode(sentence)
 
 
