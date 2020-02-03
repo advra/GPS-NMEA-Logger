@@ -20,8 +20,10 @@ HOST = "127.0.0.1"
 PORT = 14551
 
 # Do not change this parameter
-CRLF = "\r\n"
-
+# Note: Protocol states to use \r\n however Mission Planner with Ardupilot firmware 
+# formats messages beginning with $ and ending only with \n
+# CRLF = "\r\n"
+CRLF = "\n"
 
 def init(host="127.0.0.1", port=14551):
     sock = socket.socket()
@@ -29,22 +31,24 @@ def init(host="127.0.0.1", port=14551):
     return sock
 
 
-def receive_one_sentence(socket):
+def socket_receive_one_sentence(socket):
     sentence = ""
-    i = 0
+    
     # recieve until we get an entire sentence
     while sentence[-len(CRLF):] != CRLF:
-        sentence += socket.recv(1)
-        i += 1
+        char = socket.recv(1).decode()
+        sentence += char
+    print("Message Rec: {}".format(repr(sentence)))
     return sentence
-
 
 # the checksum is exclusive or of all chars between $ and *
 def split_and_check_crc(sentence):
     # remove $ at the front and \r\n at the back
-    chars = sentence[1:-2]
+    data = sentence[1:-1]
     # get data vs CRC delimited with *
-    data, crc_hex = chars.split("*")
+    data, crc_hex = data.split("*")
+    print("data: {}".format(data))
+    print("crc: {}".format(crc_hex))
     # check if XOR of data given is equal to crc hex
     isValid = compute_crc(data, crc_hex)
     return isValid, data
@@ -55,7 +59,10 @@ def compute_crc(data, crc_hex_string):
     crc_result = functools.reduce(operator.xor, (ord(s) for s in data), 0)
 
     # convert our hex to dec for comparison
+    print("Hex String: {}".format(crc_hex_string))
     crc = int(crc_hex_string, 16)
+    
+    print("CRC: {} == {}: {}".format(crc, crc_result,(crc == crc_result)))
 
     if crc == crc_result:
         return True
@@ -71,21 +78,21 @@ def decode(sentence):
         print("Bad message: CRC Error")
         return
 
-    print(repr(d))
+    # print(repr(d))
     d = d.split(',')
-    print(repr(d))
+    # print(repr(d))
 
     if "GGA" in sentence:
-        gps_time = d[1]  # fixed time taken
-        lat = d[2]  # in deg
-        lat_dir = d[3]  # North or south
-        lon = d[4]  # in deg
-        lon_dir = d[5]  # East or west
-        quality = d[6]  # fix quality
-        satellites = d[5]  # number of satellites
-        alt = d[9]  # in AMSL
+        gps_time = d[1]     # fixed time taken
+        lat = d[2]          # in deg
+        lat_dir = d[3]      # North or south
+        lon = d[4]          # in deg
+        lon_dir = d[5]      # East or west
+        quality = d[6]      # fix quality
+        satellites = d[5]   # number of satellites
+        alt = d[9]          # in AMSL
         alt_units = d[10]
-        alt_geoid = d[11]  # in AMSL
+        alt_geoid = d[11]   # in AMSL
 
         print("GGA: Time: {}, Lat: {}deg {}, Lon {}deg {}, Quality: {}, Satellites: {}, Alt: {}{}".format(gps_time, lat,
                                                                                                           lat_dir, lon,
@@ -102,10 +109,14 @@ def decode(sentence):
         variation = d[4]
         variation_dir = d[5]
         print("HDG: Heading: {} Variation: {}{}".format(heading, variation, variation_dir))
+        
         return heading, variation, variation_dir
+        
+    else:
+        print("Unsupported Message: {}".format(sentence))
 
 
-def run(test_data=""):
+def run():
     # setup port
     if HOST == "127.0.0.1":
         hostname = "localhost"
@@ -113,20 +124,16 @@ def run(test_data=""):
     try:
         s = init(host=HOST, port=PORT)
         print("Connected to {}.".format(hostname))
+        
     except ConnectionRefusedError:
-        if not test_data:
-            hostname = HOST
-            print("No connection could be made to {}.".format(hostname))
-            exit()
+        hostname = HOST
+        print("No connection could be made to {}.".format(hostname))
+        exit()
 
-    if not test_data:
-        while True:
-            sentence = receive_one_sentence(s)
-            decode(sentence)
-    else:
-        sentence = test_data
+    while True:
+        sentence = socket_receive_one_sentence(s)
         decode(sentence)
-
+            
 
 if __name__ == "__main__":
     run()

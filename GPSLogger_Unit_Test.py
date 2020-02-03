@@ -22,7 +22,11 @@ class TestSampleMessages(unittest.TestCase):
     def testHDGMessage(self):
         expected = ('101.1', '7.1', 'W')
         self.assertEqual(expected, GPSLogger.decode("$HCHDG,101.1,,,7.1,W*3C\r\n"))
-
+        
+# class TestInputFile(unittest.TestCase):
+    # def testFileOne(self):
+        # # read file
+        
 
 if __name__ == '__main__':
     unittest.main()
