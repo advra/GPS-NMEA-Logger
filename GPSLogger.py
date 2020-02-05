@@ -34,7 +34,7 @@ def receive_one_sentence(socket):
     i = 0
     # recieve until we get an entire sentence
     while sentence[-len(CRLF):] != CRLF:
-        sentence += socket.recv(1)
+        sentence += socket.recv(1).decode()
         i += 1
     return sentence
 
